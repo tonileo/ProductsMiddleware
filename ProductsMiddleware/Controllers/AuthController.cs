@@ -12,13 +12,13 @@ namespace ProductsMiddleware.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IHttpClientFactory httpClientFactory;
+        private readonly UserManager<IdentityUser> userManager;
 
-        public AuthController(IHttpClientFactory httpClientFactory)
+        public AuthController(IHttpClientFactory httpClientFactory, UserManager<IdentityUser> userManager)
         {
             this.httpClientFactory = httpClientFactory;
+            this.userManager = userManager;
         }
-
-        private readonly UserManager<IdentityUser> userManager;
 
         [HttpGet]
         public async Task<IActionResult> GetAllUsers()
@@ -64,6 +64,30 @@ namespace ProductsMiddleware.Controllers
             {
                 return NotFound();
             }
+        }
+
+        [HttpPost]
+        [Route("Register")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequestDto)
+        {
+            var identityUser = new IdentityUser
+            {
+                UserName = registerRequestDto.Username,
+            };
+
+            var identityResult = await userManager.CreateAsync(identityUser, registerRequestDto.Password);
+
+            if (identityResult.Succeeded && registerRequestDto.Roles != null && registerRequestDto.Roles.Any())
+            {
+                identityResult = await userManager.AddToRolesAsync(identityUser, registerRequestDto.Roles);
+
+                if (identityResult.Succeeded)
+                {
+                    return Ok("User successfully registered, now you can login!");
+                }
+            }
+
+            return BadRequest("Something went wrong!");
         }
     }
 }
