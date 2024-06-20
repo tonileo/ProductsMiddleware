@@ -1,4 +1,6 @@
-﻿namespace ProductsMiddleware.Models.Domain
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace ProductsMiddleware.Models.Domain
 {
     public class Product
     {

@@ -15,7 +15,7 @@ namespace ProductsMiddleware.Controllers
             this.httpClientFactory = httpClientFactory;
         }
 
-        [HttpGet] //TO DO: Category is extra and description should be max 100
+        [HttpGet] //TO DO: Category is extra
         public async Task<IActionResult> GetAllProducts()
         {
             var client = httpClientFactory.CreateClient();
@@ -24,6 +24,18 @@ namespace ProductsMiddleware.Controllers
             response.EnsureSuccessStatusCode();
 
             var responseBody = await response.Content.ReadFromJsonAsync<ProductList>();
+
+            if (responseBody?.Products != null)
+            {
+                foreach (var product in responseBody.Products)
+                {
+                    if (product.Description.Length > 100)
+                    {
+                        product.Description = product.Description.Substring(0, 100);
+                    }
+                }
+            }
+
             return Ok(responseBody);
         }
 
