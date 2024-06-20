@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ProductsMiddleware.Models.Domain;
+using ProductsMiddleware.Models.Dto;
 
 namespace ProductsMiddleware.Controllers
 {
@@ -15,7 +16,7 @@ namespace ProductsMiddleware.Controllers
             this.httpClientFactory = httpClientFactory;
         }
 
-        [HttpGet] //TO DO: Category is extra
+        [HttpGet]
         public async Task<IActionResult> GetAllProducts()
         {
             var client = httpClientFactory.CreateClient();
@@ -27,16 +28,20 @@ namespace ProductsMiddleware.Controllers
 
             if (responseBody?.Products != null)
             {
-                foreach (var product in responseBody.Products)
+                var productDTOs = responseBody.Products.Select(p => new ProductDto
                 {
-                    if (product.Description.Length > 100)
-                    {
-                        product.Description = product.Description.Substring(0, 100);
-                    }
-                }
-            }
+                    Thumbnail = p.Thumbnail,
+                    Title = p.Title,
+                    Price = p.Price,
+                    Description = string.Join("", p.Description.Take(100))
+                }).ToList();
 
-            return Ok(responseBody);
+                return Ok(productDTOs);
+            }
+            else
+            {
+                return NotFound();
+            }
         }
 
         [HttpGet]
