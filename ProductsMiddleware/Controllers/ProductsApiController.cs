@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using ProductsMiddleware.Models.Domain;
 
 namespace ProductsMiddleware.Controllers
 {
@@ -23,7 +24,7 @@ namespace ProductsMiddleware.Controllers
             var response = await client.GetAsync("https://dummyjson.com/products/" + id);
             response.EnsureSuccessStatusCode();
 
-            var responseBody = await response.Content.ReadAsStringAsync();
+            var responseBody = await response.Content.ReadFromJsonAsync<Product>();
             return Ok(responseBody);
         }
     }
