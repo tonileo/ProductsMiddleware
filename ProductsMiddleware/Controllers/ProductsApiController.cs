@@ -82,5 +82,39 @@ namespace ProductsMiddleware.Controllers
 
             return Ok(filteredProducts);
         }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> GetProductsByName([FromQuery] string? filterName)
+        {
+
+            var client = httpClientFactory.CreateClient();
+
+            var response = await client.GetAsync("https://dummyjson.com/products/");
+
+            response.EnsureSuccessStatusCode();
+
+            var responseBody = await response.Content.ReadFromJsonAsync<ProductList>();
+
+            if (responseBody?.Products == null)
+            {
+                return NotFound();
+            }
+
+            var filteredProducts = responseBody.Products;
+
+            if (!string.IsNullOrEmpty(filterName))
+            {
+                filteredProducts = filteredProducts
+                    .Where(p => p.Title.Contains(filterName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            if (!filteredProducts.Any())
+            {
+                return NotFound();
+            }
+
+            return Ok(filteredProducts);
+        }
     }
 }
