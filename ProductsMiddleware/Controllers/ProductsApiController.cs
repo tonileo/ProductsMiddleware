@@ -41,7 +41,7 @@ namespace ProductsMiddleware.Controllers
         }
 
         [HttpGet("filter")]
-        public async Task<IActionResult> GetProductsFilterCategoryAndPrice([FromQuery] string filterCategory, [FromQuery] decimal filterMinPrice, [FromQuery] decimal filterMaxPrice)
+        public async Task<IActionResult> GetProductsFilterCategoryAndPrice([FromQuery] string? filterCategory, [FromQuery] decimal? filterMinPrice, [FromQuery] decimal? filterMaxPrice)
         {
             var client = httpClientFactory.CreateClient();
 
@@ -55,16 +55,27 @@ namespace ProductsMiddleware.Controllers
                 return NotFound();
             }
 
-            var filteredProducts = responseBody.Products;
+            var filteredProducts = responseBody.Products.AsQueryable();
 
-            if (!string.IsNullOrEmpty(filterCategory) || decimal.IsPositive(filterMinPrice) || decimal.IsPositive(filterMaxPrice))
+            if (!string.IsNullOrEmpty(filterCategory))
             {
                 filteredProducts = filteredProducts
-                    .Where(p => p.Category.Contains(filterCategory, StringComparison.OrdinalIgnoreCase) && p.Price > filterMinPrice && p.Price < filterMaxPrice)
-                    .ToList();
+                    .Where(p => p.Category.Contains(filterCategory, StringComparison.OrdinalIgnoreCase));
             }
 
-            if (!filteredProducts.Any())
+            if (filterMinPrice.HasValue && filterMinPrice > 0)
+            {
+                filteredProducts = filteredProducts.Where(p => p.Price > filterMinPrice);
+            }
+
+            if (filterMaxPrice.HasValue && filterMaxPrice > 0)
+            {
+                filteredProducts = filteredProducts.Where(p => p.Price < filterMaxPrice);
+            }
+
+            var result = filteredProducts.ToList();
+
+            if (!result.Any())
             {
                 return NotFound();
             }
