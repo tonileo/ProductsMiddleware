@@ -25,53 +25,67 @@ namespace ProductsMiddleware.Controllers
         [Route("Register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequestDto)
         {
-            var identityUser = new IdentityUser
+            if (ModelState.IsValid)
             {
-                UserName = registerRequestDto.Username,
-            };
-
-            var identityResult = await userManager.CreateAsync(identityUser, registerRequestDto.Password);
-
-            if (identityResult.Succeeded && registerRequestDto.Roles != null && registerRequestDto.Roles.Any())
-            {
-                identityResult = await userManager.AddToRolesAsync(identityUser, registerRequestDto.Roles);
-
-                if (identityResult.Succeeded)
+                var identityUser = new IdentityUser
                 {
-                    return Ok("User successfully registered, now you can login!");
+                    UserName = registerRequestDto.Username,
+                };
+
+                var identityResult = await userManager.CreateAsync(identityUser, registerRequestDto.Password);
+
+                if (identityResult.Succeeded && registerRequestDto.Roles != null && registerRequestDto.Roles.Any())
+                {
+                    identityResult = await userManager.AddToRolesAsync(identityUser, registerRequestDto.Roles);
+
+                    if (identityResult.Succeeded)
+                    {
+                        return Ok("User successfully registered, now you can login!");
+                    }
                 }
+                return BadRequest("Something went wrong!");
             }
-            return BadRequest("Something went wrong!");
+            else
+            {
+                return BadRequest();
+            }
         }
 
         [HttpPost]
         [Route("Login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequestDto)
         {
-            var user = await userManager.FindByNameAsync(loginRequestDto.username);
-
-            if (user != null)
+            if (ModelState.IsValid)
             {
-                var checkResult = await userManager.CheckPasswordAsync(user, loginRequestDto.password);
+                var user = await userManager.FindByNameAsync(loginRequestDto.username);
 
-                if (checkResult)
+                if (user != null)
                 {
-                    var roles = await userManager.GetRolesAsync(user);
+                    var checkResult = await userManager.CheckPasswordAsync(user, loginRequestDto.password);
 
-                    if (roles != null)
+                    if (checkResult)
                     {
-                        var jwt = tokenRepostory.CreateJWTToken(user, roles.ToList());
+                        var roles = await userManager.GetRolesAsync(user);
 
-                        var response = new LoginResponseDto
+                        if (roles != null)
                         {
-                            JwtToken = jwt
-                        };
+                            var jwt = tokenRepostory.CreateJWTToken(user, roles.ToList());
 
-                        return Ok(response);
+                            var response = new LoginResponseDto
+                            {
+                                JwtToken = jwt
+                            };
+
+                            return Ok(response);
+                        }
                     }
                 }
+                return BadRequest("Username or password incorrect!");
             }
-            return BadRequest("Username or password incorrect!");
+            else
+            {
+                return BadRequest();
+            }
         }
     }
 }

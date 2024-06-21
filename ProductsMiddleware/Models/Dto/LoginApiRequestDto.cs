@@ -9,6 +9,7 @@ namespace ProductsMiddleware.Models.Dto
         [Required]
         [DataType(DataType.Password)]
         public string password { get; set; }
+        [Required]
         public int expiresInMins { get; set; }
     }
 }
