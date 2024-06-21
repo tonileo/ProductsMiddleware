@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using ProductsMiddleware.Models.Dto;
@@ -37,7 +38,29 @@ namespace ProductsMiddleware.Controllers
             }
         }
 
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto loginDto)
+        {
+            var client = httpClientFactory.CreateClient();
+
+            var requestContent = new StringContent(JsonSerializer.Serialize(loginDto), System.Text.Encoding.UTF8, "application/json");
+            var response = await client.PostAsync("https://dummyjson.com/auth/login", requestContent);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+
+                return StatusCode((int)response.StatusCode, errorContent);
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            var jsonResponse = JsonSerializer.Deserialize<JsonElement>(responseBody);
+
+            return Ok(jsonResponse);
+        }
+
         [HttpPost]
+        [Route("loginDifferentWay")]
         public async Task<IActionResult> LoginApi([FromBody] LoginRequestDto loginRequestDto)
         {
             var client = httpClientFactory.CreateClient();

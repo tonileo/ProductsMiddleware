@@ -10,12 +10,12 @@ namespace ProductsMiddleware.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController : ControllerBase
+    public class AuthDatabaseController : ControllerBase
     {
         private readonly UserManager<IdentityUser> userManager;
         private readonly ITokenRepostory tokenRepostory;
 
-        public AuthController(UserManager<IdentityUser> userManager, ITokenRepostory tokenRepostory)
+        public AuthDatabaseController(UserManager<IdentityUser> userManager, ITokenRepostory tokenRepostory)
         {
             this.userManager = userManager;
             this.tokenRepostory = tokenRepostory;
