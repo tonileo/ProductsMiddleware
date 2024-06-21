@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ProductsMiddleware.Models.Domain;
 using ProductsMiddleware.Models.Dto;
@@ -17,6 +18,7 @@ namespace ProductsMiddleware.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetAllProducts()
         {
             var client = httpClientFactory.CreateClient();

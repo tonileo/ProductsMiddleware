@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using ProductsMiddleware.Data;
+using ProductsMiddleware.Repositories;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<ProductsAuthDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("ProductsAuthConnectionString")));
+
+builder.Services.AddScoped<ITokenRepostory, TokenRepository>();
 
 builder.Services.AddHttpClient();
 

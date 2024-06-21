@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using ProductsMiddleware.Models.Domain;
 using ProductsMiddleware.Models.Dto;
+using ProductsMiddleware.Repositories;
 
 namespace ProductsMiddleware.Controllers
 {
@@ -11,59 +12,13 @@ namespace ProductsMiddleware.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly IHttpClientFactory httpClientFactory;
         private readonly UserManager<IdentityUser> userManager;
+        private readonly ITokenRepostory tokenRepostory;
 
-        public AuthController(IHttpClientFactory httpClientFactory, UserManager<IdentityUser> userManager)
+        public AuthController(UserManager<IdentityUser> userManager, ITokenRepostory tokenRepostory)
         {
-            this.httpClientFactory = httpClientFactory;
             this.userManager = userManager;
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetAllUsers()
-        {
-            var client = httpClientFactory.CreateClient();
-
-            var response = await client.GetAsync("https://dummyjson.com/users/");
-            response.EnsureSuccessStatusCode();
-
-            var responseBody = await response.Content.ReadFromJsonAsync<UsersList>();
-
-            if (responseBody?.Users != null)
-            {
-                return Ok(responseBody.Users);
-            }
-            else
-            {
-                return NotFound();
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> LoginApi([FromBody] LoginRequestDto loginRequestDto)
-        {
-            var client = httpClientFactory.CreateClient();
-            var response = await client.GetAsync("https://dummyjson.com/users/");
-            response.EnsureSuccessStatusCode();
-
-            var responseBody = await response.Content.ReadFromJsonAsync<UsersList>();
-            if (responseBody?.Users != null)
-            {
-                var user = responseBody.Users.FirstOrDefault(u => u.Username == loginRequestDto.Username && u.Password == loginRequestDto.Password);
-                if (user != null)
-                {
-                    return Ok();
-                }
-                else
-                {
-                    return BadRequest("Username or paswword are incorrect!");
-                }
-            }
-            else
-            {
-                return NotFound();
-            }
+            this.tokenRepostory = tokenRepostory;
         }
 
         [HttpPost]
@@ -86,7 +41,6 @@ namespace ProductsMiddleware.Controllers
                     return Ok("User successfully registered, now you can login!");
                 }
             }
-
             return BadRequest("Something went wrong!");
         }
 
@@ -102,10 +56,21 @@ namespace ProductsMiddleware.Controllers
 
                 if (checkResult)
                 {
-                    return Ok();
+                    var roles = await userManager.GetRolesAsync(user);
+
+                    if (roles != null)
+                    {
+                        var jwt = tokenRepostory.CreateJWTToken(user, roles.ToList());
+
+                        var response = new LoginResponseDto
+                        {
+                            JwtToken = jwt
+                        };
+
+                        return Ok(response);
+                    }
                 }
             }
-
             return BadRequest("Username or password incorrect!");
         }
     }
