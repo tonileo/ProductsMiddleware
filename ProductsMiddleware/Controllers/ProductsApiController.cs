@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Linq.Expressions;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ProductsMiddleware.Models.Domain;
@@ -11,38 +13,54 @@ namespace ProductsMiddleware.Controllers
     public class ProductsApiController : ControllerBase
     {
         private readonly IHttpClientFactory httpClientFactory;
+        private readonly ILogger<ProductsApiController> logger;
 
-        public ProductsApiController(IHttpClientFactory httpClientFactory)
+        public ProductsApiController(IHttpClientFactory httpClientFactory, ILogger<ProductsApiController> logger)
         {
             this.httpClientFactory = httpClientFactory;
+            this.logger = logger;
         }
 
         [HttpGet]
-        [Authorize]
+        //[Authorize]
         public async Task<IActionResult> GetAllProducts()
         {
-            var client = httpClientFactory.CreateClient();
-
-            var response = await client.GetAsync("https://dummyjson.com/products/");
-            response.EnsureSuccessStatusCode();
-
-            var responseBody = await response.Content.ReadFromJsonAsync<ProductList>();
-
-            if (responseBody?.Products != null)
+            try
             {
-                var productDTOs = responseBody.Products.Select(p => new ProductDto
+                logger.LogInformation("Get All Products started");
+                var client = httpClientFactory.CreateClient();
+
+                var response = await client.GetAsync("https://dummyjson.com/products/");
+                logger.LogInformation($"Response from client: {response}");
+                response.EnsureSuccessStatusCode();
+
+                var responseBody = await response.Content.ReadFromJsonAsync<ProductList>();
+
+                logger.LogInformation($"Response from ProductList with data: {JsonSerializer.Serialize(responseBody)}");
+
+                if (responseBody?.Products != null)
                 {
-                    Thumbnail = p.Thumbnail,
-                    Title = p.Title,
-                    Price = p.Price,
-                    Description = string.Join("", p.Description.Take(100))
-                }).ToList();
+                    var productDTOs = responseBody.Products.Select(p => new ProductDto
+                    {
+                        Thumbnail = p.Thumbnail,
+                        Title = p.Title,
+                        Price = p.Price,
+                        Description = string.Join("", p.Description.Take(100))
+                    }).ToList();
 
-                return Ok(productDTOs);
+                    logger.LogInformation("Get all products finished");
+                    return Ok(productDTOs);
+                }
+                else
+                {
+                    logger.LogWarning("Couldn't find the products");
+                    return NotFound();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return NotFound();
+                logger.LogError(ex, ex.Message);
+                throw;
             }
         }
 
@@ -50,90 +68,126 @@ namespace ProductsMiddleware.Controllers
         [Route("{id}")]
         public async Task<IActionResult> GetProduct(int id)
         {
-            var client = httpClientFactory.CreateClient();
+            try
+            {
+                logger.LogInformation("Get Product started");
+                var client = httpClientFactory.CreateClient();
 
-            var response = await client.GetAsync("https://dummyjson.com/products/" + id);
-            response.EnsureSuccessStatusCode();
+                var response = await client.GetAsync("https://dummyjson.com/products/" + id);
+                response.EnsureSuccessStatusCode();
 
-            var responseBody = await response.Content.ReadFromJsonAsync<Product>();
-            return Ok(responseBody);
+                var responseBody = await response.Content.ReadFromJsonAsync<Product>();
+                logger.LogInformation("Get product finished");
+                return Ok(responseBody);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, ex.Message);
+                throw;
+            }
+
         }
 
         [HttpGet("filter")]
         public async Task<IActionResult> GetProductsFilterCategoryAndPrice([FromQuery] string? filterCategory, [FromQuery] decimal? filterMinPrice, [FromQuery] decimal? filterMaxPrice)
         {
-            var client = httpClientFactory.CreateClient();
-
-            var response = await client.GetAsync("https://dummyjson.com/products/");
-            response.EnsureSuccessStatusCode();
-
-            var responseBody = await response.Content.ReadFromJsonAsync<ProductList>();
-
-            if (responseBody?.Products == null)
+            try
             {
-                return NotFound();
+                logger.LogInformation("GetProductsFilterCategoryAndPrice started");
+                var client = httpClientFactory.CreateClient();
+
+                var response = await client.GetAsync("https://dummyjson.com/products/");
+                response.EnsureSuccessStatusCode();
+
+                var responseBody = await response.Content.ReadFromJsonAsync<ProductList>();
+
+                if (responseBody?.Products == null)
+                {
+                    logger.LogInformation("ResponseBody == null");
+                    return NotFound();
+                }
+
+                var filteredProducts = responseBody.Products.AsQueryable();
+
+                if (!string.IsNullOrEmpty(filterCategory))
+                {
+                    filteredProducts = filteredProducts
+                        .Where(p => p.Category.Contains(filterCategory, StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (filterMinPrice.HasValue && filterMinPrice > 0)
+                {
+                    filteredProducts = filteredProducts.Where(p => p.Price > filterMinPrice);
+                }
+
+                if (filterMaxPrice.HasValue && filterMaxPrice > 0)
+                {
+                    filteredProducts = filteredProducts.Where(p => p.Price < filterMaxPrice);
+                }
+
+                var result = filteredProducts.ToList();
+
+                if (!result.Any())
+                {
+                    logger.LogWarning("Result doesn't contain elements");
+                    return NotFound();
+                }
+
+                logger.LogInformation("GetProductsFilterCategoryAndPrice finished");
+                return Ok(filteredProducts);
+
             }
-
-            var filteredProducts = responseBody.Products.AsQueryable();
-
-            if (!string.IsNullOrEmpty(filterCategory))
+            catch (Exception ex)
             {
-                filteredProducts = filteredProducts
-                    .Where(p => p.Category.Contains(filterCategory, StringComparison.OrdinalIgnoreCase));
+                logger.LogError(ex, ex.Message);
+                throw;
             }
-
-            if (filterMinPrice.HasValue && filterMinPrice > 0)
-            {
-                filteredProducts = filteredProducts.Where(p => p.Price > filterMinPrice);
-            }
-
-            if (filterMaxPrice.HasValue && filterMaxPrice > 0)
-            {
-                filteredProducts = filteredProducts.Where(p => p.Price < filterMaxPrice);
-            }
-
-            var result = filteredProducts.ToList();
-
-            if (!result.Any())
-            {
-                return NotFound();
-            }
-
-            return Ok(filteredProducts);
         }
 
         [HttpGet("search")]
         public async Task<IActionResult> GetProductsByName([FromQuery] string? filterName)
         {
-
-            var client = httpClientFactory.CreateClient();
-
-            var response = await client.GetAsync("https://dummyjson.com/products/");
-
-            response.EnsureSuccessStatusCode();
-
-            var responseBody = await response.Content.ReadFromJsonAsync<ProductList>();
-
-            if (responseBody?.Products == null)
+            try
             {
-                return NotFound();
+                logger.LogInformation("GetProductsByName started");
+                var client = httpClientFactory.CreateClient();
+
+                var response = await client.GetAsync("https://dummyjson.com/products/");
+
+                response.EnsureSuccessStatusCode();
+
+                var responseBody = await response.Content.ReadFromJsonAsync<ProductList>();
+
+                if (responseBody?.Products == null)
+                {
+                    logger.LogInformation("ResponseBody == null");
+                    return NotFound();
+                }
+
+                var filteredProducts = responseBody.Products;
+
+                if (!string.IsNullOrEmpty(filterName))
+                {
+                    filteredProducts = filteredProducts
+                        .Where(p => p.Title.Contains(filterName, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
+
+                if (!filteredProducts.Any())
+                {
+                    logger.LogWarning("Result doesn't contain elements");
+                    return NotFound();
+                }
+
+                logger.LogInformation("GetProductsByName finished");
+                return Ok(filteredProducts);
+
             }
-
-            var filteredProducts = responseBody.Products;
-
-            if (!string.IsNullOrEmpty(filterName))
+            catch (Exception ex)
             {
-                filteredProducts = filteredProducts
-                    .Where(p => p.Title.Contains(filterName, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
+                logger.LogError(ex, ex.Message);
+                throw;
             }
-
-            if (!filteredProducts.Any())
-            {
-                return NotFound();
-            }
-
-            return Ok(filteredProducts);
         }
     }
 }

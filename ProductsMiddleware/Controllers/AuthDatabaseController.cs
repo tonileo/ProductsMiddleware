@@ -1,4 +1,5 @@
 ﻿using System.Net.Http;
+using Azure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,40 +15,56 @@ namespace ProductsMiddleware.Controllers
     {
         private readonly UserManager<IdentityUser> userManager;
         private readonly ITokenRepostory tokenRepostory;
+        private readonly ILogger<AuthDatabaseController> logger;
 
-        public AuthDatabaseController(UserManager<IdentityUser> userManager, ITokenRepostory tokenRepostory)
+        public AuthDatabaseController(UserManager<IdentityUser> userManager, ITokenRepostory tokenRepostory, ILogger<AuthDatabaseController> logger)
         {
             this.userManager = userManager;
             this.tokenRepostory = tokenRepostory;
+            this.logger = logger;
         }
 
         [HttpPost]
         [Route("Register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequestDto)
         {
-            if (ModelState.IsValid)
+            try
             {
-                var identityUser = new IdentityUser
+                logger.LogInformation("Register started");
+                if (ModelState.IsValid)
                 {
-                    UserName = registerRequestDto.Username,
-                };
-
-                var identityResult = await userManager.CreateAsync(identityUser, registerRequestDto.Password);
-
-                if (identityResult.Succeeded && registerRequestDto.Roles != null && registerRequestDto.Roles.Any())
-                {
-                    identityResult = await userManager.AddToRolesAsync(identityUser, registerRequestDto.Roles);
-
-                    if (identityResult.Succeeded)
+                    var identityUser = new IdentityUser
                     {
-                        return Ok("User successfully registered, now you can login!");
+                        UserName = registerRequestDto.Username,
+                    };
+
+                    var identityResult = await userManager.CreateAsync(identityUser, registerRequestDto.Password);
+                    logger.LogInformation($"Identity result: {identityResult}");
+
+                    if (identityResult.Succeeded && registerRequestDto.Roles != null && registerRequestDto.Roles.Any())
+                    {
+                        logger.LogInformation("Identity result succeeded and roles are not empty or null");
+                        identityResult = await userManager.AddToRolesAsync(identityUser, registerRequestDto.Roles);
+
+                        if (identityResult.Succeeded)
+                        {
+                            logger.LogInformation("Register finished");
+                            return Ok("User successfully registered, now you can login!");
+                        }
                     }
+                    logger.LogWarning("Something happend with identity result and roles");
+                    return BadRequest("Something went wrong!");
                 }
-                return BadRequest("Something went wrong!");
+                else
+                {
+                    logger.LogWarning("Model invalid");
+                    return BadRequest();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return BadRequest();
+                logger.LogError(ex, ex.Message);
+                throw;
             }
         }
 
@@ -55,36 +72,52 @@ namespace ProductsMiddleware.Controllers
         [Route("Login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequestDto)
         {
-            if (ModelState.IsValid)
+            try
             {
-                var user = await userManager.FindByNameAsync(loginRequestDto.username);
-
-                if (user != null)
+                logger.LogInformation("Login started");
+                if (ModelState.IsValid)
                 {
-                    var checkResult = await userManager.CheckPasswordAsync(user, loginRequestDto.password);
+                    var user = await userManager.FindByNameAsync(loginRequestDto.username);
 
-                    if (checkResult)
+                    if (user != null)
                     {
-                        var roles = await userManager.GetRolesAsync(user);
+                        logger.LogInformation($"User not empty: {user}");
+                        var checkResult = await userManager.CheckPasswordAsync(user, loginRequestDto.password);
 
-                        if (roles != null)
+                        if (checkResult)
                         {
-                            var jwt = tokenRepostory.CreateJWTToken(user, roles.ToList());
+                            logger.LogInformation($"CheckResult not empty: {checkResult}");
+                            var roles = await userManager.GetRolesAsync(user);
 
-                            var response = new LoginResponseDto
+                            if (roles != null)
                             {
-                                JwtToken = jwt
-                            };
+                                logger.LogInformation($"Roles not empty: {checkResult}");
+                                var jwt = tokenRepostory.CreateJWTToken(user, roles.ToList());
 
-                            return Ok(response);
+                                var response = new LoginResponseDto
+                                {
+                                    JwtToken = jwt
+                                };
+
+                                logger.LogInformation($"Login finished: {response}");
+                                return Ok(response);
+                            }
                         }
                     }
+                    logger.LogWarning("Username or password incorrect");
+                    return BadRequest("Username or password incorrect!");
                 }
-                return BadRequest("Username or password incorrect!");
+                else
+                {
+                    logger.LogWarning("Model not valid");
+                    return BadRequest("Model not valid");
+                }
+
             }
-            else
+            catch (Exception ex)
             {
-                return BadRequest();
+                logger.LogError(ex, ex.Message);
+                throw;
             }
         }
     }
