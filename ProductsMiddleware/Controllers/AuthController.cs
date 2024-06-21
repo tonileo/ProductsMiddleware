@@ -41,7 +41,7 @@ namespace ProductsMiddleware.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequestDto)
+        public async Task<IActionResult> LoginApi([FromBody] LoginRequestDto loginRequestDto)
         {
             var client = httpClientFactory.CreateClient();
             var response = await client.GetAsync("https://dummyjson.com/users/");
@@ -88,6 +88,25 @@ namespace ProductsMiddleware.Controllers
             }
 
             return BadRequest("Something went wrong!");
+        }
+
+        [HttpPost]
+        [Route("Login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequestDto)
+        {
+            var user = await userManager.FindByNameAsync(loginRequestDto.Username);
+
+            if (user != null)
+            {
+                var checkResult = await userManager.CheckPasswordAsync(user, loginRequestDto.Password);
+
+                if (checkResult)
+                {
+                    return Ok();
+                }
+            }
+
+            return BadRequest("Username or password incorrect!");
         }
     }
 }

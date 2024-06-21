@@ -1,8 +1,13 @@
-﻿namespace ProductsMiddleware.Models.Dto
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace ProductsMiddleware.Models.Dto
 {
     public class LoginRequestDto
     {
+        [Required]
         public string Username { get; set; }
+        [Required]
+        [DataType(DataType.Password)]
         public string Password { get; set; }
     }
 }
