@@ -18,7 +18,7 @@ namespace ProductsMiddleware.Controllers
             this.httpClientFactory = httpClientFactory;
         }
 
-        [HttpGet]
+        [HttpGet("users")]
         public async Task<IActionResult> GetAllUsers()
         {
             var client = httpClientFactory.CreateClient();
@@ -39,7 +39,7 @@ namespace ProductsMiddleware.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequestDto loginDto)
+        public async Task<IActionResult> Login([FromBody] LoginApiRequestDto loginDto)
         {
             var client = httpClientFactory.CreateClient();
 
@@ -70,14 +70,14 @@ namespace ProductsMiddleware.Controllers
             var responseBody = await response.Content.ReadFromJsonAsync<UsersList>();
             if (responseBody?.Users != null)
             {
-                var user = responseBody.Users.FirstOrDefault(u => u.Username == loginRequestDto.Username && u.Password == loginRequestDto.Password);
+                var user = responseBody.Users.FirstOrDefault(u => u.username == loginRequestDto.username && u.password == loginRequestDto.password);
                 if (user != null)
                 {
-                    return Ok();
+                    return Ok("User successfully loged in!");
                 }
                 else
                 {
-                    return BadRequest("Username or paswword are incorrect!");
+                    return BadRequest("Username or password are incorrect!");
                 }
             }
             else

@@ -48,11 +48,11 @@ namespace ProductsMiddleware.Controllers
         [Route("Login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequestDto)
         {
-            var user = await userManager.FindByNameAsync(loginRequestDto.Username);
+            var user = await userManager.FindByNameAsync(loginRequestDto.username);
 
             if (user != null)
             {
-                var checkResult = await userManager.CheckPasswordAsync(user, loginRequestDto.Password);
+                var checkResult = await userManager.CheckPasswordAsync(user, loginRequestDto.password);
 
                 if (checkResult)
                 {
