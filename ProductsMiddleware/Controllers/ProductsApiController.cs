@@ -79,7 +79,7 @@ namespace ProductsMiddleware.Controllers
                 var response = await client.GetAsync("https://dummyjson.com/products/" + id);
                 response.EnsureSuccessStatusCode();
 
-                var responseBody = await response.Content.ReadFromJsonAsync<Product>();
+                var responseBody = await response.Content.ReadFromJsonAsync<DetailedProductDto>();
                 logger.LogInformation("Get product finished");
                 return Ok(responseBody);
             }
@@ -88,7 +88,6 @@ namespace ProductsMiddleware.Controllers
                 logger.LogError(ex, ex.Message);
                 throw;
             }
-
         }
 
         [HttpGet("filter")]
