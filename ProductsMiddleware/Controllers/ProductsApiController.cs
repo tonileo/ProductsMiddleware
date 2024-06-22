@@ -25,7 +25,7 @@ namespace ProductsMiddleware.Controllers
         }
 
         [HttpGet]
-        //[Authorize]
+        [Authorize(Roles = "User")]
         public async Task<IActionResult> GetAllProducts()
         {
             try
@@ -69,6 +69,7 @@ namespace ProductsMiddleware.Controllers
 
         [HttpGet]
         [Route("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetProduct(int id)
         {
             try
@@ -159,11 +160,11 @@ namespace ProductsMiddleware.Controllers
 
 
         [HttpGet("search")]
-        public async Task<IActionResult> GetProductsByName([FromQuery] string? filterName)
+        public async Task<IActionResult> GetProductsByName([FromQuery] string? searchName)
         {
             try
             {
-                var cacheKey = $"Products_{filterName}";
+                var cacheKey = $"Products_{searchName}";
 
                 if (memoryCache.TryGetValue(cacheKey, out List<Product>? cachedSearchProducts))
                 {
@@ -187,10 +188,10 @@ namespace ProductsMiddleware.Controllers
 
                 var filteredProducts = responseBody.Products;
 
-                if (!string.IsNullOrEmpty(filterName))
+                if (!string.IsNullOrEmpty(searchName))
                 {
                     filteredProducts = filteredProducts
-                        .Where(p => p.Title.Contains(filterName, StringComparison.OrdinalIgnoreCase))
+                        .Where(p => p.Title.Contains(searchName, StringComparison.OrdinalIgnoreCase))
                         .ToList();
                 }
 
