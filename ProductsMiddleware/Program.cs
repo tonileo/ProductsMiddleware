@@ -60,6 +60,8 @@ builder.Services.AddScoped<ITokenRepostory, TokenRepository>();
 
 builder.Services.AddHttpClient();
 
+builder.Services.AddMemoryCache();
+
 builder.Services.AddIdentityCore<IdentityUser>().AddRoles<IdentityRole>()
     .AddTokenProvider<DataProtectorTokenProvider<IdentityUser>>("Products")
     .AddEntityFrameworkStores<ProductsAuthDbContext>()

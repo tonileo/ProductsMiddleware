@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using ProductsMiddleware.Models.Domain;
 using ProductsMiddleware.Models.Dto;
 
@@ -14,11 +15,13 @@ namespace ProductsMiddleware.Controllers
     {
         private readonly IHttpClientFactory httpClientFactory;
         private readonly ILogger<ProductsApiController> logger;
+        private readonly IMemoryCache memoryCache;
 
-        public ProductsApiController(IHttpClientFactory httpClientFactory, ILogger<ProductsApiController> logger)
+        public ProductsApiController(IHttpClientFactory httpClientFactory, ILogger<ProductsApiController> logger, IMemoryCache memoryCache)
         {
             this.httpClientFactory = httpClientFactory;
             this.logger = logger;
+            this.memoryCache = memoryCache;
         }
 
         [HttpGet]
@@ -94,20 +97,30 @@ namespace ProductsMiddleware.Controllers
             try
             {
                 logger.LogInformation("GetProductsFilterCategoryAndPrice started");
-                var client = httpClientFactory.CreateClient();
 
+                var cacheKey = $"Products_{filterCategory}_{filterMinPrice}_{filterMaxPrice}";
+
+                if (memoryCache.TryGetValue(cacheKey, out List<Product>? cachedFilteredProducts))
+                {
+                    logger.LogInformation("Returning cached data");
+                    return Ok(cachedFilteredProducts);
+                }
+
+                logger.LogInformation("No cached data available");
+                var client = httpClientFactory.CreateClient();
                 var response = await client.GetAsync("https://dummyjson.com/products/");
                 response.EnsureSuccessStatusCode();
 
                 var responseBody = await response.Content.ReadFromJsonAsync<ProductList>();
-
                 if (responseBody?.Products == null)
                 {
                     logger.LogInformation("ResponseBody == null");
                     return NotFound();
                 }
 
-                var filteredProducts = responseBody.Products.AsQueryable();
+                var productList = responseBody.Products;
+
+                var filteredProducts = productList.AsQueryable();
 
                 if (!string.IsNullOrEmpty(filterCategory))
                 {
@@ -117,12 +130,12 @@ namespace ProductsMiddleware.Controllers
 
                 if (filterMinPrice.HasValue && filterMinPrice > 0)
                 {
-                    filteredProducts = filteredProducts.Where(p => p.Price > filterMinPrice);
+                    filteredProducts = filteredProducts.Where(p => p.Price >= filterMinPrice);
                 }
 
                 if (filterMaxPrice.HasValue && filterMaxPrice > 0)
                 {
-                    filteredProducts = filteredProducts.Where(p => p.Price < filterMaxPrice);
+                    filteredProducts = filteredProducts.Where(p => p.Price <= filterMaxPrice);
                 }
 
                 var result = filteredProducts.ToList();
@@ -133,9 +146,10 @@ namespace ProductsMiddleware.Controllers
                     return NotFound();
                 }
 
-                logger.LogInformation("GetProductsFilterCategoryAndPrice finished");
-                return Ok(filteredProducts);
+                memoryCache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
 
+                logger.LogInformation("GetProductsFilterCategoryAndPrice finished");
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -144,11 +158,19 @@ namespace ProductsMiddleware.Controllers
             }
         }
 
+
         [HttpGet("search")]
         public async Task<IActionResult> GetProductsByName([FromQuery] string? filterName)
         {
             try
             {
+                var cacheKey = $"Products_{filterName}";
+
+                if (memoryCache.TryGetValue(cacheKey, out List<Product>? cachedSearchProducts))
+                {
+                    logger.LogInformation("Returning cached data");
+                    return Ok(cachedSearchProducts);
+                }
                 logger.LogInformation("GetProductsByName started");
                 var client = httpClientFactory.CreateClient();
 
@@ -178,6 +200,8 @@ namespace ProductsMiddleware.Controllers
                     logger.LogWarning("Result doesn't contain elements");
                     return NotFound();
                 }
+
+                memoryCache.Set(cacheKey, filteredProducts, TimeSpan.FromMinutes(19));
 
                 logger.LogInformation("GetProductsByName finished");
                 return Ok(filteredProducts);
