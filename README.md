@@ -80,9 +80,11 @@ Primjer:
 }
 
 ### ProductsApi:
+Za svaki endpoint, dohvaćeni proizvodi s https://dummyjson.com/products
+
 * (Get) – POTREBNA AUTENTIKACIJA KORISNIKA S USER ULOGOM. Dohvaća listu proizvoda s slikom, nazivom, skraćenim opisom do 100 znakova (ako proizvod ima više od 100 znakova, znakovi nakon 100-og znaka se neće prikazati)
   
-* {id} (GET) – POTREBNA AUTENTIKACIJA KORISNIKA S ADMIN ULOGOM. Pri unosu id-a nekog proizvoda, vraća detalje tog proizvoda. Mora se unijet id inače se metoda neće izvršit. 
+* {id} (GET) – POTREBNA AUTENTIKACIJA KORISNIKA S ADMIN ULOGOM. Pri unosu id-a nekog proizvoda, vraća detalje tog proizvoda. Mora se unijet id inače se metoda neće izvršit. Dohvaćanje s "https://dummyjson.com/products/ + id"
  
 * Filter (GET) – Omogućuje filtriranje proizvoda po kategoriji, najnižoj cijeni, najvišoj cijeni. Moguće filtrirat po samo po jednom svojstvu, a moguća i kombinacija svih. Filtriranje po kategoriji će vratiti sve proizvode s tom kategorijom. Filtriranje po najnižoj cijeni će prikazati sve proizvode čija cijena je veća od najniže cijene. Filtriranje po najvišoj cijeni će prikazati sve proizvode čija cijena je niža od najviše cijene. Implementiran cache koji će pri svakom ponovnom pozivu endpoint-a s istim parametrima, vratiti proizvode iz cache memorije umjesto dohvaćanja s servisa svaki puta.
  
