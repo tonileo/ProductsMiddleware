@@ -34,7 +34,8 @@ Nakon što se korisnik uspješno prijavi, u odgovoru dobije jwt token koji treba
 
 Na vrhu swagger stranice s desne strane nalazi se gumb „Authorize“. Klikom na gumb otvara se obrazac u koji prvo moramo upisat „Bearer [jwt]“. [jwt] je kopirani jwt koji smo dobili nakon prijave. Nakon toga možemo kliknuti close i testirati zaštićene endpoint-ove. Moguće i testirati Postman alatom gdje samo treba staviti kao header „Authorization“ i unutar vrijednosti staviti kao i prije „Bearer [jwt]“. 
 
-Primjer:
+Primjer (kopiranje ovog primjera neće raditi jer morate sami registrirati i logirati korisnika kako bi dobili važući jwt):
+
 Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidGVzdDEiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJBZG1pbiIsImV4cCI6MTcxOTE2NTAzNiwiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NzE3Ny8iLCJhdWQiOiJodHRwczovL2xvY2FsaG9zdDo3MTc3LyJ9.ikbZ2RT_axJX3JBNUXzu8_ffCoHSwgq_VLvr0UPRfks
 
 ## Kako testirati aplikaciju
@@ -60,7 +61,8 @@ Primjer: {
 
 ### AuthDatabase:
 * Register (POST)– Implementirana metoda stvarne registracije kroz bazu podataka. Potrebno unijeti željeni username, password (mora biti barem 3 znaka) i uloga (admin ili user). Vraća status 200 (ok) s porukom „User successfully registered, now you can login!“. U suprotnom vraća jednu od  mogućih grešaka i njihov status.
-	Primjer:
+
+Primjer:
 {
   "username": "test",
   "password": "123",
